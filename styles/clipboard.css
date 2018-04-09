@@ -1,0 +1,31 @@
+div#jsonCopyButton {
+    margin: 0;
+    padding: 0;
+    width: 120px;
+    float: right;
+}
+div#jsonCopyButton:hover {
+    cursor: pointer;
+}
+
+#jsonButton {
+    margin: 0;
+    width: 500px;
+    height: 20px;
+}
+
+#jsonOutputTextarea {
+    margin: 8px 0 0;
+    height: 200px;
+    width: 500px;
+    display: block;
+}
+
+#jsonOutputPre {
+    margin: 12px 0 0;
+}
+
+div#jsonOutput {
+    width: 60%; 
+    margin: 32px auto;
+}

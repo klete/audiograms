@@ -1,0 +1,252 @@
+#letters-link {
+    padding-top: 8px;
+    text-align: right;
+}
+
+#meqhistory i.icon-file-text-alt {
+	color: #7f7f7f;
+	margin-left: 10px;
+	margin-right: 3px;
+}
+
+	#meqhistory a:hover i.icon-file-text-alt {
+		text-decoration: none;
+	}
+
+#pfthistory i.icon-file-text-alt {
+	color: #7f7f7f;
+	margin-left: 10px;
+	margin-right: 3px;
+}
+
+	#pfthistory a:hover i.icon-file-text-alt {
+		text-decoration: none;
+	}
+
+#rfthistory a:hover i.icon-file-text-alt {
+    text-decoration: none;
+}
+
+#adghistory.showingrecords .empty, #adghistory.showingtrend .empty {
+	display: none;
+}
+
+#adghistory.showingrecords .trend, #adghistory.showingempty .trend {
+	display: none;
+}
+
+#adghistory.showingtrend .records, #adghistory.showingempty .records {
+	display: none;
+}
+
+#adghistory.showingempty .filters, #adghistory.showingempty .subheader {
+	display: none;
+}
+
+#adghistory .empty td {
+	color: #7f7f7f;
+	font-style: italic;
+	padding: 10px;
+}
+
+#adghistory table {
+	border-spacing: 0px;
+	width: 100%;
+}
+
+#adghistory td {
+	vertical-align: top;
+}
+
+#recordlist {
+	border-right: 1px solid #e5eef3;
+	position: relative;
+	width: 30%;
+}
+
+#recordlist input {
+	display: none;
+}
+
+#recordlist label {
+	display: block;
+	padding: 3px 10px;
+}
+
+	#recordlist input:checked + label {
+		background: #efefef;
+	}
+
+		#recordlist input:not(:checked) + label:hover {
+			background: #f8f8f8;
+		}
+
+		#recordlist label i.icon-chevron-right {
+			float: right;
+			line-height: 21px;
+		}
+
+			#recordlist input:not(:checked) + label i.icon-chevron-right {
+				display: none;
+			}
+
+#legend {
+	background: #ffffff;
+	bottom: 0px;
+	display: none;
+	left: 0px;
+	padding: 10px;
+	position: absolute;
+	right: 0px;
+	width: auto;
+	z-index: 100;
+}
+
+#legend .indicator {
+	margin-right: 5px;
+}
+
+.indicator {
+	border: 1px solid;
+	border-radius: 3px;
+	color: #ffffff;
+	display: inline-block;
+	font-size: 0.7em;
+	margin: -3px 0px 0px 3px;
+	padding: 0px 3px;
+	vertical-align: middle;
+}
+
+	.leftbl.indicator {
+		background: #29587b;
+		border-color: #29587b;
+	}
+
+	.leftbl-old.indicator {
+		border-color: #77a3c1;
+		color: #77a3c1;
+	}
+
+	.rightbl.indicator {
+		background: #cb272b;
+		border-color: #cb272b;
+	}
+
+	.rightbl-old.indicator {
+		border-color: #dc6e71;
+		color: #dc6e71;
+	}
+
+	.improvement.indicator {
+		background: #7aa378;
+		border-color: #7aa378;
+	}
+
+	.sts.indicator {
+		background: #7f7f7f;
+		border-color: #7f7f7f;
+	}
+
+	.recordable.indicator {
+		background: #f6dbdc;
+		border-color: #cb272b;
+		color: #cb272b;
+		font-weight: 700;
+	}
+
+    .tts.indicator {
+        background: none;
+        border-color: #7f7f7f;
+        color: #7f7f7f;
+    }
+
+.controls {
+	border-bottom: 1px solid #e5eef3;
+	padding: 10px;
+}
+
+.selector {
+	background: #efefef;
+	color: #7f7f7f;
+	display: block;
+	float: right;
+	line-height: 25px;
+	text-align: center;
+	padding: 2px 10px;
+}
+
+	.left.selector {
+		border-radius: 5px 0px 0px 5px;
+		width: 71px;
+	}
+
+		.on.left.selector {
+			background: #29587b;
+			color: #ffffff;
+		}
+
+	.right.selector {
+		border-radius: 0px 5px 5px 0px;
+		width: 76px;
+	}
+
+		.on.right.selector {
+			background: #cb272b;
+			color: #ffffff;
+		}
+
+	.baseline.selector {
+		border-radius: 5px;
+		margin-right: 5px;
+	}
+
+		.on.baseline.selector {
+			background: #7f7f7f;
+			color: #ffffff;
+		}
+
+.selector:not(.on) i.icon-check {
+	display: none;
+}
+
+.on.selector i.icon-check-empty {
+	display: none;
+}
+
+#expanded {
+	border-top: 1px solid #e5eef3;
+}
+
+#expanded .left, #expanded .right {
+	display: inline-block;
+	margin-left: 30px;
+}
+
+	#expanded .left {
+		color: #29587b;
+	}
+
+	#expanded .right {
+		color: #cb272b;
+	}
+
+#expanded .lettericon {
+	border-radius: 8px;
+	color: #ffffff;
+	display: inline-block;
+	font-size: 8pt;
+	font-weight: bold;
+	height: 16px;
+	line-height: 16px;
+	margin-right: 5px;
+	text-align: center;
+	width: 16px;
+}
+
+	#expanded .left .lettericon {
+		background: #29587b;
+	}
+
+	#expanded .right .lettericon {
+		background: #cb272b;
+	}
