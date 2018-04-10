@@ -9,11 +9,12 @@
     Adg.init = function() {
         var self = this;
 
-        self.processed_exam = null;
-        self.json_record_for_upload = null;
         self.baseline = null;
-        // self.result = null;
         self.current_exams = {};
+
+        self.cleaned_new_exam = null;
+        self.exam_display_record = null;
+        self.json_upload_record = null;
     }
 
     Adg.init.prototype = Adg.prototype;
@@ -25,66 +26,24 @@
     Adg.prototype.frequencies = ['500','1000','2000','3000','4000','6000','8000'];
         
     Adg.prototype.processAudiogram = function(new_exam, baseline, current_exams) {
-        this.initProcessedExam(new_exam);
+        this.cleanNewExam(new_exam);
         this.setBaseline(baseline);
         this.setCurrentExams(current_exams);
-        this.evaluateHearing();
-        this.addNewExamToCurrentExams();
-        this.setJSONRecordForUpload();
+
+        this.initExamDisplayRecord();
+        this.initJSONUploadRecord();
+
+        var processed_baseline = this.processBaseline();
+        var processed_new_exam = this.processNewExam();
+        var comparison = this.computeSTSStatus(processed_baseline, processed_new_exam);
+
+        this.updateJSONUploadRecord(processed_new_exam, comparison);
+        this.updateExamDisplayRecord(processed_new_exam);
+        this.addNewExamToCurrentExamsForDisplay();
     };
 
-    Adg.prototype.addNewExamToCurrentExams = function() {
-        this.current_exams['recordNew'] = this.setExamDisplay();
-    };
-
-    Adg.prototype.setCurrentExams = function(current_exams) {
-        // this.current_exams = Object.assign(current_exams, this.current_exams);
-
-        for (const examKey in current_exams) {
-            if (current_exams.hasOwnProperty(examKey)) {
-                this.current_exams[examKey] = current_exams[examKey];
-            }
-        }
-    };
-
-    Adg.prototype.setJSONRecordForUpload = function() {
-        this.json_record_for_upload = [{
-            "first_name":this.processed_exam.first_name,
-            "middle_name":this.processed_exam.middle_name,
-            "last_name":this.processed_exam.last_name,
-            "dob":this.processed_exam.dob,
-            "sex":this.processed_exam.sex,
-            "ssn":''+this.processed_exam.ssn,
-            "email_address":this.processed_exam.email,
-            "person_id":this.processed_exam.person_id,
-            "test_date":this.processed_exam.test_date,
-            "test_time":this.processed_exam.test_time,
-            "site_id":this.processed_exam.site_id,
-            "group_id":this.processed_exam.group_id,
-            "order":this.processed_exam.order,
-            "left":{
-                "age_corrected":this.processed_exam.left.age_corrected,
-                "osha_average_ac":this.processed_exam.left.osha_average_ac,
-                "exam":this.processed_exam.left.exam,
-                "expanded_eval":this.processed_exam.left.expanded_eval,
-                "sts_status":this.processed_exam.left.sts_status
-            },
-            "right":{
-                "age_corrected":this.processed_exam.right.age_corrected,
-                "osha_average_ac":this.processed_exam.right.osha_average_ac,
-                "exam":this.processed_exam.right.exam,
-                "expanded_eval":this.processed_exam.right.expanded_eval,
-                "sts_status":this.processed_exam.right.sts_status
-            }
-        }];
-    };
-
-    Adg.prototype.setBaseline = function(baseline) {
-        this.baseline = baseline;
-    }
-
-    Adg.prototype.initProcessedExam = function(record, baseline) {
-        this.processed_exam = {
+    Adg.prototype.cleanNewExam = function(record) {
+        this.cleaned_new_exam = {
             'name': record['LAST NAME']+', '+record['FIRST NAME'],
             'first_name': record['FIRST NAME'],
             'middle_name': record['INITIAL'] ? record['INITIAL'] : null,
@@ -103,8 +62,6 @@
             'group': record['LOCATION'],
             'order': record['ORDER'],
             'left': {
-                'age_corrected': null,
-                'osha_average_ac': null,
                 'exam': [
                     record['LF .5k'],
                     record['LF 1k'],
@@ -113,13 +70,9 @@
                     record['LF 4k'],
                     record['LF 6k'],
                     record['LF 8k']
-                ],
-                'expanded_eval': null,
-                'sts_status': null
+                ]
             },
             'right': {
-                'age_corrected': null,
-                'osha_average_ac': null,
                 'exam': [
                     record['RT .5k'],
                     record['RT 1k'],
@@ -128,271 +81,224 @@
                     record['RT 4k'],
                     record['RT 6k'],
                     record['RT 8k']
-                ],
-                'expanded_eval': null,
-                'sts_status': null
+                ]
             }
         };
     };
 
-    Adg.prototype.evaluateHearing = function() {
-        
-        var self = this;        
-        var dob = self.processed_exam['dob'];
-        var gender = self.processed_exam['sex'];
+    Adg.prototype.setBaseline = function(baseline) {
+        this.baseline = baseline;
+    }
 
-        var baseline_exam = processExam('baseline_exam');
-        var current_exam = processExam('current_exam'); 
-        var comparison = self.computeComparisons(baseline_exam, current_exam);    
-                                        
-        self.processed_exam['left']['age_corrected'] = current_exam['left']['age_corrected'];
-        self.processed_exam['left']['osha_average_ac'] = current_exam['left']['osha_average_ac'];
-        self.processed_exam['left']['expanded_eval'] = current_exam['left']['expanded_eval'];
-        self.processed_exam['left']['sts_status'] = current_exam['left']['sts_status'];
+    Adg.prototype.setCurrentExams = function(current_exams) {
+        // this.current_exams = Object.assign(current_exams, this.current_exams);
 
-        self.processed_exam['right']['age_corrected'] = current_exam['right']['age_corrected'];
-        self.processed_exam['right']['osha_average_ac'] = current_exam['right']['osha_average_ac'];
-        self.processed_exam['right']['expanded_eval'] = current_exam['right']['expanded_eval'];
-        self.processed_exam['right']['sts_status'] = current_exam['right']['sts_status'];
-
-        self.processed_exam.exam_display = setExamDisplay();
-
-        function processExam(exam_type){                
-    
-            var test_date = setTestDate();
-            var candidate_age = self.get_candidate_age(dob, test_date);
-            var exam_results = {
-                left: computeExamResults('left'),
-                right: computeExamResults('right')
-            };
-
-            return exam_results;             
-
-            function computeExamResults(ear) {
-                var hearing_levels = getUserTestResponses(ear);    
-                var user_responses = cleanUserResponses(hearing_levels);
-                var user_responses_ac = ageCorrectUserResponses(user_responses);                
-                
-                return evaluateUserResponses(user_responses, user_responses_ac);
-            };   
-    
-            function evaluateUserResponses(user_responses, user_responses_ac) {
-
-                var average_threshold = self.compute_average_threshold(user_responses);
-                var average_threshold_ac = self.compute_average_threshold(user_responses_ac);
-                var osha_average = self.compute_osha_avg(user_responses);
-                var osha_average_ac = self.compute_osha_avg(user_responses_ac);
-
-                // compute if "severe hearing loss" is present - if we list individual audiogram records, this will show us at a glance which ones are abnormal
-                var status, status_str;
-            
-                if (average_threshold_ac >= self.normal_exam_level_cutoff){
-                    status = 2;                       // record shows impairment (severe_hearing_loss_current = True)
-                    status_str = 'Record shows impairment. '+average_threshold_ac+' ('+self.normal_exam_level_cutoff+' dB cut-off)';
-                }
-                else{
-                    status = 1;                          // record does not show impairment (severe_hearing_loss_current = False)
-                    status_str = 'Record does not show impairment. '+average_threshold_ac+' ('+self.normal_exam_level_cutoff+' dB cut-off)';
-                }
-
-                var expanded_eval, expanded_eval_str;
-        
-                if (average_threshold_ac < 25){
-                    expanded_eval = 0;
-                    expanded_eval_str = 'Normal';
-                } else if (average_threshold_ac < 40){
-                    expanded_eval = 1;
-                    expanded_eval_str = 'Mild';
-                } else if (average_threshold_ac < 55){
-                    expanded_eval = 2;
-                    expanded_eval_str = 'Moderate';
-                } else if (average_threshold_ac < 70){
-                    expanded_eval = 3;
-                    expanded_eval_str = 'Mod. Severe';
-                } else if (average_threshold_ac < 80){
-                    expanded_eval = 4;
-                    expanded_eval_str = 'Severe (4)';
-                } else{
-                    expanded_eval = 5;
-                    expanded_eval_str = 'Profound';  
-                }
-
-                var eval = {
-                    candidate_age: candidate_age,
-                    exam_date: test_date,
-                    hearing_levels: user_responses,
-                    age_corrected: user_responses_ac,
-                    average_threshold: average_threshold,
-                    average_threshold_ac: average_threshold_ac,
-                    osha_average: osha_average,
-                    osha_average_ac: osha_average_ac,
-                    sts_status: 0,
-                    sts_status_str: 'No comparison done',
-                    status: status,
-                    status_str: status_str,
-                    expanded_eval: expanded_eval,
-                    expanded_eval_str: expanded_eval_str
-                };
-
-                return eval;
-            }
-
-            function setTestDate() {
-                if (exam_type === 'baseline_exam'){
-                    // test_date = self.processed_exam[exam_type]['date'];
-                    return self.baseline['date'];
-                } else {                    
-                    return self.processed_exam['test_date'];                         
-                }                
-            }
-
-            function getUserTestResponses(ear) {
-                if (exam_type === 'baseline_exam'){
-                    // return  self.processed_exam[exam_type]['thresholds'][ear];
-                    return  self.baseline['thresholds'][ear];
-                } else {                    
-                    return  self.processed_exam[ear]['exam'];
-                }  
-            }
-
-            function ageCorrectUserResponses(user_responses) {
-                return user_responses.map(function(candidate_response_threshold, freq_index) {
-                    return self.ageCorrectResponse(candidate_response_threshold, freq_index, gender, candidate_age);
-                });
-            }
-
-            function cleanUserResponses(userResponses) {
-                return userResponses.map(self.emptyStrToNull);      
+        for (const examKey in current_exams) {
+            if (current_exams.hasOwnProperty(examKey)) {
+                this.current_exams[examKey] = current_exams[examKey];
             }
         }
-        
-        function setExamDisplay() {            
-            return {                
-                id: null,
-                date: setExamDate(),
-                order: self.processed_exam['order'],
-                averages: {
-                    left: current_exam.left['average_threshold_ac'],
-                    right: current_exam.right['average_threshold_ac']
-                },
-                thresholds: {
-                    left: current_exam.left['hearing_levels'],
-                    right: current_exam.right['hearing_levels']
-                },
-                expandedEvaluation: {
-                    left: current_exam.left['expanded_eval'],
-                    right: current_exam.right['expanded_eval']
-                },
-                stsStatus: {
-                    left: current_exam.left['sts_status'],
-                    right: current_exam.right['sts_status']
-                }                
-            };
-        }
+    };
 
-        function setExamDate() {
-            var exam_date = new Date(self.processed_exam['test_date']);
+    Adg.prototype.initExamDisplayRecord = function() {
+        var self = this;
+
+        this.exam_display_record = {
+            id: 'New',              // current.id
+            date: _setExamDate(),
+            order: this.cleaned_new_exam.order,
+            averages: {
+                left: null,
+                right: null
+            },
+            thresholds: {
+                left: null,
+                right: null
+            },
+            expandedEvaluation: {
+                left: null,
+                right: null
+            },
+            stsStatus: {
+                left: null,
+                right: null
+            }
+        };
+
+        function _setExamDate() {
+            var exam_date = new Date(self.cleaned_new_exam['test_date']);
             var exam_date_month = exam_date.getUTCMonth();
             var exam_date_day = exam_date.getUTCDate();
             var exam_date_year = exam_date.getUTCFullYear();
     
             return exam_date_day+' '+self.months[exam_date_month]+' '+exam_date_year;
-        }        
+        }                
+    }
+
+    Adg.prototype.updateExamDisplayRecord = function(new_exam) {
+        this.exam_display_record['averages']['left'] = new_exam.left['average_threshold_ac'];
+        this.exam_display_record['averages']['right'] = new_exam.right['average_threshold_ac'];
+        
+        this.exam_display_record['thresholds']['left'] = new_exam.left['hearing_levels'];
+        this.exam_display_record['thresholds']['right'] = new_exam.right['hearing_levels'];
+        
+        this.exam_display_record['expandedEvaluation']['left'] = new_exam.left['expanded_eval'];
+        this.exam_display_record['expandedEvaluation']['right'] = new_exam.right['expanded_eval'];
+        
+        this.exam_display_record['stsStatus']['left'] = new_exam.left['sts_status'];
+        this.exam_display_record['stsStatus']['right'] = new_exam.right['sts_status'];        
+    }
+
+    Adg.prototype.initJSONUploadRecord = function() {
+        this.json_upload_record = {
+            "first_name": this.cleaned_new_exam.first_name,
+            "middle_name": this.cleaned_new_exam.middle_name,
+            "last_name": this.cleaned_new_exam.last_name,
+            "dob": this.cleaned_new_exam.dob,
+            "sex": this.cleaned_new_exam.sex,
+            "ssn": this.cleaned_new_exam.ssn,
+            "email_address": this.cleaned_new_exam.email,
+            "person_id": this.cleaned_new_exam.person_id,
+            "test_date": this.cleaned_new_exam.test_date,
+            "test_time": this.cleaned_new_exam.test_time,
+            "site_id": this.cleaned_new_exam.site_id,
+            "group_id": this.cleaned_new_exam.group_id,
+            "order": this.cleaned_new_exam.order,
+            "left":{
+                "age_corrected": null,
+                "osha_average_ac": null,
+                "exam": this.cleaned_new_exam.left.exam,
+                "expanded_eval": null,
+                "sts_status": null
+            },
+            "right":{
+                "age_corrected": null,
+                "osha_average_ac": null,
+                "exam": this.cleaned_new_exam.right.exam,
+                "expanded_eval": null,
+                "sts_status": null
+            }
+        };    
+    }
+
+    Adg.prototype.updateJSONUploadRecord = function(new_exam, comparison) {
+        this.json_upload_record['left']['sts_status'] = comparison['left']['sts_status'];
+        this.json_upload_record['left']['sts_status_str'] = comparison['left']['sts_status_str'];
+
+        this.json_upload_record['right']['sts_status'] = comparison['right']['sts_status'];
+        this.json_upload_record['right']['sts_status_str'] = comparison['right']['sts_status_str'];
+
+        this.json_upload_record['left']['age_corrected'] = new_exam['left']['age_corrected'];
+        this.json_upload_record['left']['osha_average_ac'] = new_exam['left']['osha_average_ac'];
+        this.json_upload_record['left']['expanded_eval'] = new_exam['left']['expanded_eval'];
+
+        this.json_upload_record['right']['age_corrected'] = new_exam['right']['age_corrected'];
+        this.json_upload_record['right']['osha_average_ac'] = new_exam['right']['osha_average_ac'];
+        this.json_upload_record['right']['expanded_eval'] = new_exam['right']['expanded_eval'];
+    }
+    
+    Adg.prototype.processBaseline = function() {        
+        var test_date = this.baseline['date'];
+        var hearing_levels = {
+            left: this.baseline['thresholds']['left'],
+            right: this.baseline['thresholds']['right']
+        };
+        return this.processExam(hearing_levels, test_date);
     };
 
-    Adg.prototype.setExamDisplay = function() {
+    Adg.prototype.processNewExam = function() {
+        var test_date = this.cleaned_new_exam['test_date'];      
+        var hearing_levels = {
+            left: this.cleaned_new_exam['left']['exam'],
+            right: this.cleaned_new_exam['right']['exam']
+        };
+        return this.processExam(hearing_levels, test_date);
+    }    
 
-        const current = this.processed_exam.exam_display;
+    Adg.prototype.processExam = function(hearing_levels, test_date) {
+        var candidate_age = this.getUserAge(test_date);
+        return {
+            left: this.processEar(hearing_levels['left'], candidate_age),
+            right: this.processEar(hearing_levels['right'], candidate_age)
+        };
+    }
 
-        console.log(current);
+    Adg.prototype.processEar = function(hearing_levels, candidate_age) {
+        var user_responses = this.cleanUserResponses(hearing_levels);
+        var user_responses_ac = this.ageCorrectUserResponses(user_responses, candidate_age);                
+        
+        var average_threshold = this.computeAverageThreshold(user_responses);
+        var average_threshold_ac = this.computeAverageThreshold(user_responses_ac);
+        var osha_average = this.computeOshaAverage(user_responses);
+        var osha_average_ac = this.computeOshaAverage(user_responses_ac);
+
+        var status = this.computeHearingStatus(average_threshold_ac);
+        var expanded_eval = this.computeExpandedEval(average_threshold_ac);
 
         return {
-            id: 'New',              // current.id
-            date: current.date,
-            order: current.order,
-            averages: {
-                left: current.averages.left,
-                right: current.averages.right
-            },
-            thresholds: {
-                left: current.thresholds.left,
-                right: current.thresholds.right
-            },
-            expandedEvaluation: {
-                left: current.expandedEvaluation.left,
-                right: current.expandedEvaluation.right
-            },
-            stsStatus: {
-                left: current.stsStatus.left,
-                right: current.stsStatus.right
-            }
+            hearing_levels: user_responses,
+            age_corrected: user_responses_ac,
+            average_threshold: average_threshold,
+            average_threshold_ac: average_threshold_ac,
+            osha_average: osha_average,
+            osha_average_ac: osha_average_ac,
+            sts_status: 0,
+            sts_status_str: 'No comparison done',
+            status: status.status,
+            status_str: status.status_str,
+            expanded_eval: expanded_eval.expanded_eval,
+            expanded_eval_str: expanded_eval.expanded_eval_str
         };
-    };
+    }
 
-    Adg.prototype.compute_average_threshold = function(freqs){
-        var f500 = freqs[0];
-        var f1k = freqs[1];
-        var f2k = freqs[2];
-        var f3k = freqs[3];
-        return (f500 + f1k + f2k + f3k)/4.0;
-    };
-
-    Adg.prototype.compute_osha_avg = function(freqs){
-        var f2k = freqs[2];
-        var f3k = freqs[3];
-        var f4k = freqs[4];
-        return (f2k + f3k + f4k)/3.0;
-    };
-
-    Adg.prototype.computeComparisons = function(baseline_exam, current_exam) {
-
+    Adg.prototype.computeSTSStatus = function(baseline_exam, current_exam) {
         if (baseline_exam === null){
             return {};
         }
-        
-        // var b_exam = baseline_exam.exam_results;
-        // var c_exam = current_exam.exam_results;
-        var b_exam = baseline_exam;
-        var c_exam = current_exam;
+            
+        return {
+            left: _compare(baseline_exam['left'], current_exam['left']),  
+            right: _compare(baseline_exam['right'], current_exam['right'])
+        };
 
-        var _compare = function(_baseline_exam, _current_exam){
+        function _compare(_baseline_exam, _current_exam){
             //    status codes:
             //    0 = no STS
             //    1 = STS
             //    2 = potentially recordable STS
             //    3 = recordable STS
             //    4 = STS improvement
-    
+            var sts_status = 0;
+            var sts_status_str = '';
+
             var osha_shift_ac = _current_exam['osha_average_ac'] - _baseline_exam['osha_average_ac'];
     
             if (osha_shift_ac >= 10) {
                 // marked change
                 // marked worsening            
-                if (_current_exam['osha_average'] >= 25) return 2;   // STS potentially recordable
-                return 1;   // STS
+                if (_current_exam['osha_average'] >= 25) {
+                    sts_status = 2; 
+                    sts_status_str = 'STS potentially recordable';
+                } else {
+                    sts_status = 1;
+                    sts_status_str = 'STS';    
+                }
             } else if (osha_shift_ac <= -10){
                 // marked change
                 // marked improvement            
-                return 4;
-            } else {
-                return 0;
+                sts_status = 4;
+                sts_status_str = 'Marked improvement';    
             }
-        }
-    
-        var results = this.ears.map(function(ear){ return _compare(b_exam[ear], c_exam[ear]); });
-    
-        return {
-            left: results[0],  
-            right: results[1]
-        };
-    };
 
-    Adg.prototype.emptyStrToNull = function(val) { 
-        return (val === "") ? null : val; 
-    };
+            return {
+                sts_status: sts_status,
+                sts_status_str: sts_status_str,
+            };
+        }        
+    }
 
-    Adg.prototype.get_candidate_age = function(dob, test_date){
-        var _dob = new Date(dob);
+    Adg.prototype.getUserAge = function(test_date){
+        var _dob = new Date(this.cleaned_new_exam.dob);
         var _dot = new Date(test_date);
     
         var ty = _dot.getFullYear();
@@ -411,21 +317,110 @@
         if ((tm < pm) || ((tm == pm) && (td < pd))){ years_old -= 1 }
     
         return years_old;
+    }
+
+    Adg.prototype.cleanUserResponses = function(userResponses) {
+        return userResponses.map(function(val) { 
+            return (val === "") ? null : val; 
+        });      
+    }
+
+    Adg.prototype.ageCorrectUserResponses = function(user_responses, candidate_age) {
+        var self = this;
+
+        return user_responses.map(function(candidate_response_threshold, freq_index) {
+            return self.ageCorrectResponse(candidate_response_threshold, freq_index, candidate_age);
+        });
+    }
+
+    Adg.prototype.computeAverageThreshold = function(freqs) {
+        var f500 = freqs[0];
+        var f1k = freqs[1];
+        var f2k = freqs[2];
+        var f3k = freqs[3];
+        return (f500 + f1k + f2k + f3k)/4.0;
+    }
+
+    Adg.prototype.computeOshaAverage = function(freqs) {
+        var f2k = freqs[2];
+        var f3k = freqs[3];
+        var f4k = freqs[4];
+        return (f2k + f3k + f4k)/3.0;
+    }
+
+    Adg.prototype.computeHearingStatus = function(average_threshold_ac) {
+        // compute if "severe hearing loss" is present - if we list individual audiogram records, this will show us at a glance which ones are abnormal
+        var status, status_str;
+                    
+        if (average_threshold_ac >= self.normal_exam_level_cutoff){
+            status = 2;                       // record shows impairment (severe_hearing_loss_current = True)
+            status_str = 'Record shows impairment. '+average_threshold_ac+' ('+self.normal_exam_level_cutoff+' dB cut-off)';
+        }
+        else{
+            status = 1;                          // record does not show impairment (severe_hearing_loss_current = False)
+            status_str = 'Record does not show impairment. '+average_threshold_ac+' ('+self.normal_exam_level_cutoff+' dB cut-off)';
+        }
+
+        return { status: status, status_str: status_str };
+    }
+
+    Adg.prototype.computeExpandedEval = function(average_threshold_ac) {
+        var expanded_eval, expanded_eval_str;
+
+        if (average_threshold_ac < 25){
+            expanded_eval = 0;
+            expanded_eval_str = 'Normal';
+        } else if (average_threshold_ac < 40){
+            expanded_eval = 1;
+            expanded_eval_str = 'Mild';
+        } else if (average_threshold_ac < 55){
+            expanded_eval = 2;
+            expanded_eval_str = 'Moderate';
+        } else if (average_threshold_ac < 70){
+            expanded_eval = 3;
+            expanded_eval_str = 'Mod. Severe';
+        } else if (average_threshold_ac < 80){
+            expanded_eval = 4;
+            expanded_eval_str = 'Severe (4)';
+        } else{
+            expanded_eval = 5;
+            expanded_eval_str = 'Profound';  
+        }
+
+        return { expanded_eval: expanded_eval, expanded_eval_str: expanded_eval_str };
+    }
+
+    Adg.prototype.addNewExamToCurrentExamsForDisplay = function() {
+        this.current_exams['recordNew'] = this.exam_display_record;
     };
 
-    Adg.prototype.ageCorrectResponse = function(candidate_response_threshold, freq_index, _gender, _age) {
+
+    Adg.prototype.emptyStrToNull = function(val) { 
+        return (val === "") ? null : val; 
+    };
+
+    Adg.prototype.ageCorrectResponse = function(candidate_response_threshold, freq_index, _age) {
         if (isNaN(parseInt(candidate_response_threshold,10))) return null;
         var _f = this.frequencies[freq_index];
         var _a = _age;
+        var _g;
+
         if ((_f === '500') || (_f === '8000')) return candidate_response_threshold;
+
         if (_a > 60) _a = '60';
-        var _g = (_gender === 2) ? 'M' : 'F';
+        
+        if (this.cleaned_new_exam.sex === 2) {
+            _g = 'M';
+         } else if (this.cleaned_new_exam.sex === 1) {
+            _g = 'F';
+         } else {
+            throw new Error('[Adg.prototype.ageCorrectResponse] Invalid sex: ' + this.cleaned_new_exam.sex)
+         }
 
         var correction_value = this.ageCorrectionData[_g][_a][_f];
         return candidate_response_threshold - correction_value;
     };
         
-
     Adg.prototype.ageCorrectionData = {
         
         'M': {

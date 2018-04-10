@@ -1,7 +1,7 @@
 /* cSpell:disable */
 $(document).ready(function() {
     
-    const json_record = adg.json_record_for_upload;
+    const json_record = adg.json_upload_record;
 
     function copy() {
         var copyText = document.getElementById('jsonOutputTextarea');
